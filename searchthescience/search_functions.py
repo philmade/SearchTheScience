@@ -2,12 +2,12 @@ import asyncio
 import aiohttp
 from duckduckgo_search import DDGS
 from functools import partial
-from schemas import (
+from .schemas import (
     SearchResult,
     SearchType,
     SearchQuery,
 )
-from enums import PubMedFilterType
+from .enums import PubMedFilterType
 from loguru import logger
 from typing import Any
 import re
@@ -19,7 +19,7 @@ from pyalex import Works
 from pyalex import config as pyalex_config
 from rank_bm25 import BM25Okapi
 import tiktoken
-from result_mapper import SearchResultMapper
+from .result_mapper import SearchResultMapper
 import os
 
 max_results = 10

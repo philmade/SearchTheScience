@@ -1,7 +1,7 @@
 from loguru import logger
 from datetime import datetime
 from typing import Dict, Any, Union, List
-from schemas import SearchResult, SearchType
+from .schemas import SearchResult, SearchType
 from urllib.parse import urlparse
 
 

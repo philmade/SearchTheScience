@@ -57,7 +57,7 @@ pip install searchthescience
 
 ```python
 import asyncio
-from search_the_science import multi_search_interface, SearchQuery, SearchType
+from searchthescience import multi_search_interface, SearchQuery, SearchType
 
 async def main():
     # Define your searches
@@ -89,7 +89,7 @@ if __name__ == "__main__":
 
 ```python
 import asyncio
-from search_the_science import multi_search_interface, SearchQuery, SearchType
+from searchthescience import multi_search_interface, SearchQuery, SearchType
 
 async def search_for_llm(user_query: str):
     """
@@ -134,7 +134,7 @@ if __name__ == "__main__":
 
 ```python
 import asyncio
-from search_the_science import Metasearch
+from searchthescience import Metasearch
 
 async def main():
     metasearch = Metasearch()
@@ -157,7 +157,7 @@ if __name__ == "__main__":
 ## Available Search Types
 
 ```python
-from search_the_science import SearchType
+from searchthescience import SearchType
 
 # Scientific databases
 SearchType.SCIENCE_PUBMED       # PubMed medical research
@@ -212,7 +212,7 @@ This package is designed to work seamlessly with pydantic-ai:
 
 ```python
 from pydantic_ai import Agent
-from search_the_science import multi_search_interface, SearchQuery, SearchType
+from searchthescience import multi_search_interface, SearchQuery, SearchType
 
 # Create a pydantic-ai agent with search capabilities
 agent = Agent(

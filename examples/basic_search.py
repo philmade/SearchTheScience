@@ -11,8 +11,7 @@ import os
 # Add parent directory to path for local development
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from search_functions import multi_search_interface
-from schemas import SearchQuery, SearchType
+from searchthescience import multi_search_interface, SearchQuery, SearchType
 
 
 async def basic_search_example():
