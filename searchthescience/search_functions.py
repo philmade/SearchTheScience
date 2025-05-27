@@ -343,10 +343,23 @@ async def search_arxiv(query: str, max_results: int = 10) -> List[SearchResult]:
         ) as response:
             xml = await response.text()
             root = ET.fromstring(xml)
-            return [
-                SearchResultMapper.map_arxiv(entry)
-                for entry in root.findall("{*}entry")
-            ]
+            
+            results = []
+            for entry in root.findall("{*}entry"):
+                # Extract data from XML element
+                entry_data = {
+                    "title": entry.findtext("{*}title", "").strip(),
+                    "id": entry.findtext("{*}id", ""),
+                    "summary": entry.findtext("{*}summary", "").strip(),
+                    "published": entry.findtext("{*}published", ""),
+                    "authors": [author.findtext("{*}name", "") for author in entry.findall("{*}author")],
+                    "categories": [cat.get("term", "") for cat in entry.findall("{*}category")],
+                    "doi": None  # arXiv entries don't typically have DOIs in this feed
+                }
+                
+                results.append(SearchResultMapper.map_arxiv(entry_data))
+            
+            return results
 
 
 def expand_list(results: Union[List, Any]) -> List[Any]:
