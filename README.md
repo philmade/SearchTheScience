@@ -15,22 +15,22 @@ A unified Python package for searching across scientific databases and sources. 
 
 ### Using pip (recommended)
 ```bash
-pip install git+https://github.com/philmade/searchthescience.git
+pip install git+https://github.com/philmade/SearchTheScience.git
 ```
 
 ### Using uv (fastest)
 ```bash
-uv pip install git+https://github.com/philmade/searchthescience.git
+uv pip install git+https://github.com/philmade/SearchTheScience.git
 ```
 
 ### Using Poetry
 ```bash
-poetry add git+https://github.com/philmade/searchthescience.git
+poetry add git+https://github.com/philmade/SearchTheScience.git
 ```
 
 ### In requirements.txt
 ```
-git+https://github.com/philmade/searchthescience.git
+git+https://github.com/philmade/SearchTheScience.git
 ```
 
 ### In pyproject.toml (Poetry)
