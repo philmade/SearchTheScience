@@ -49,9 +49,9 @@ dev = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/username/search-the-science"
-Repository = "https://github.com/username/search-the-science"
-Issues = "https://github.com/username/search-the-science/issues"
+Homepage = "https://github.com/philmade/SearchTheScience"
+Repository = "https://github.com/philmade/SearchTheScience"
+Issues = "https://github.com/philmade/SearchTheScience/issues"
 
 [tool.setuptools.packages.find]
 where = ["."]

@@ -36,13 +36,13 @@ git+https://github.com/philmade/SearchTheScience.git
 ### In pyproject.toml (Poetry)
 ```toml
 [tool.poetry.dependencies]
-searchthescience = {git = "https://github.com/philmade/searchthescience.git"}
+searchthescience = {git = "https://github.com/philmade/SearchTheScience.git"}
 ```
 
 ### For development
 ```bash
-git clone https://github.com/philmade/searchthescience.git
-cd searchthescience
+git clone https://github.com/philmade/SearchTheScience.git
+cd SearchTheScience
 pip install -e .
 ```
 
