@@ -11,7 +11,7 @@ import os
 # Add parent directory to path for local development
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from searchthescience import multi_search_interface, SearchQuery, SearchType
+from searchthescience import multi_search_interface, SearchQuery, SearchTypeStable
 
 
 async def basic_search_example():
@@ -20,19 +20,19 @@ async def basic_search_example():
     print("🔬 SearchTheScience - Basic Search Example")
     print("=" * 50)
     
-    # Define search queries for different databases
+    # Define search queries for different databases (using stable/reliable searches only)
     queries = [
         SearchQuery(
-            search_type=SearchType.SCIENCE_PUBMED, 
-            query="machine learning in medical diagnosis"
+            search_type=SearchTypeStable.SCIENCE_ARXIV, 
+            query="machine learning medical diagnosis"
         ),
         SearchQuery(
-            search_type=SearchType.SCIENCE_ARXIV, 
-            query="deep learning healthcare"
-        ),
-        SearchQuery(
-            search_type=SearchType.SCIENCE_GENERAL, 
+            search_type=SearchTypeStable.SCIENCE_GENERAL, 
             query="AI medical imaging"
+        ),
+        SearchQuery(
+            search_type=SearchTypeStable.ZENODO,
+            query="medical AI datasets"
         ),
     ]
     
@@ -99,11 +99,11 @@ async def search_specific_topic():
     topic = "CRISPR gene editing applications"
     print(f"Searching for: '{topic}'")
     
-    # Focus on high-quality scientific sources
+    # Focus on stable, working scientific sources
     queries = [
-        SearchQuery(search_type=SearchType.SCIENCE_PUBMED, query=topic),
-        SearchQuery(search_type=SearchType.SCIENCE_GENERAL, query=topic),
-        SearchQuery(search_type=SearchType.ZENODO, query=topic),
+        SearchQuery(search_type=SearchTypeStable.SCIENCE_GENERAL, query=topic),
+        SearchQuery(search_type=SearchTypeStable.SCIENCE_ARXIV, query=topic),
+        SearchQuery(search_type=SearchTypeStable.ZENODO, query=topic),
     ]
     
     try:

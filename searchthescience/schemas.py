@@ -102,6 +102,20 @@ class SearchType(Enum):
         return self.value
 
 
+class SearchTypeStable(Enum):
+    """STABLE search types - tested and verified to work consistently.
+    These are the only search types enabled in the main SearchQuery."""
+
+    SCIENCE_GENERAL = "Scientific papers and citations across all fields. Covers physics, chemistry, biology, and interdisciplinary research."
+    SCIENCE_ARXIV = "Preprints from arXiv covering physics, mathematics, computer science, and related fields. Latest research before formal peer review."
+    ZENODO = "Research outputs from the Zenodo repository. Includes datasets, software, presentations, and papers."
+
+    def __str__(self) -> str:
+        """Return the description for use in prompts and documentation."""
+        return self.value
+
+
+# Legacy - kept for backwards compatibility but many don't work due to rate limiting
 class SearchTypeFocused(Enum):
     """Search types with detailed descriptions for AI context. This focuses in the AI a little more."""
 
@@ -119,11 +133,30 @@ class SearchTypeFocused(Enum):
 
 
 class SearchQuery(BaseModel):
-    """Search query with search type and query string. Example, search_type: SearchType.SCIENCE_PUBMED, query: 'cancer'"""
+    """Search query with STABLE search types only. These are tested and reliable.
+    
+    Example: SearchQuery(search_type=SearchTypeStable.SCIENCE_GENERAL, query='cancer research')
+    """
+
+    search_type: SearchTypeStable = Field(
+        ...,
+        description="Stable search type to use (only includes working searches)",
+    )
+    query: str = Field(..., description="Search query string")
+
+
+class SearchQueryAlpha(BaseModel):
+    """Search query with ALL search types (experimental/alpha).
+    
+    WARNING: Many search types may not work due to rate limiting or API issues.
+    Use SearchQuery with SearchTypeStable for reliable results.
+    
+    Example: SearchQueryAlpha(search_type=SearchType.SCIENCE_PUBMED, query='cancer')
+    """
 
     search_type: SearchType = Field(
         ...,
-        description="Search type to use",
+        description="Any search type (many may not work reliably)",
     )
     query: str = Field(..., description="Search query string")
 

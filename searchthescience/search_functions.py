@@ -5,7 +5,9 @@ from functools import partial
 from .schemas import (
     SearchResult,
     SearchType,
+    SearchTypeStable,
     SearchQuery,
+    SearchQueryAlpha,
 )
 from .enums import PubMedFilterType
 from loguru import logger
@@ -602,27 +604,38 @@ async def deep_search_pubmed(
 # Configure limits
 MAX_CONCURRENT_SEARCHES = 5  # Adjust based on testing
 RATE_LIMIT_DELAY = 1.0  # Seconds between searches
-search_map = {
-    # SearchType.NEWS: search_news,
-    # SearchType.WEB: search_web,
-    # SearchType.SEMANTIC_SCHOLAR: search_semantic,
-    SearchType.RESEARCHGATE: search_researchgate,
-    # SearchType.PAPERITY: search_paperity,
-    # SearchType.GOOGLE_SCHOLAR: search_scholar,
-    # SearchType.ACADEMIC_SOURCES: search_academic_sources,
-    # SearchType.OPEN_SCIENCE: search_open_science_sources,
-    # SearchType.REFERENCE: search_reference,
-    # SearchType.ACADEMIC_PROFILES: search_academic_profiles,
-    SearchType.SCIENCE_PUBMED: search_pubmed,
-    SearchType.SCIENCE_GENERAL: search_openalex,
-    SearchType.SCIENCE_ARXIV: search_arxiv,
-    SearchType.INDEPENDENT_NEWS: search_substack,
-    SearchType.ZENODO: search_zenodo,
+# STABLE SEARCH MAP - only includes reliable searches
+stable_search_map = {
+    SearchTypeStable.SCIENCE_GENERAL: search_openalex,    # OpenAlex API - always works
+    SearchTypeStable.SCIENCE_ARXIV: search_arxiv,         # arXiv API - always works  
+    SearchTypeStable.ZENODO: search_zenodo,               # Zenodo API - always works
+}
+
+# ALPHA SEARCH MAP - includes all searches (many broken due to rate limiting)
+alpha_search_map = {
+    # ✅ WORKING SEARCHES
+    SearchType.SCIENCE_GENERAL: search_openalex,    # OpenAlex API - always works
+    SearchType.SCIENCE_ARXIV: search_arxiv,         # arXiv API - always works  
+    SearchType.ZENODO: search_zenodo,               # Zenodo API - always works
+    
+    # ❌ DISABLED - DDG dependent searches (rate limited)
+    # SearchType.RESEARCHGATE: search_researchgate,     # DDG dependent - fails with rate limits
+    # SearchType.SCIENCE_PUBMED: search_pubmed,         # DDG dependent - fails with rate limits
+    # SearchType.INDEPENDENT_NEWS: search_substack,     # Often fails
+    # SearchType.NEWS: search_news,                     # DDG dependent
+    # SearchType.WEB: search_web,                       # DDG dependent
+    # SearchType.SEMANTIC_SCHOLAR: search_semantic,     # DDG dependent
+    # SearchType.PAPERITY: search_paperity,             # DDG dependent
+    # SearchType.GOOGLE_SCHOLAR: search_scholar,        # DDG dependent
+    # SearchType.ACADEMIC_SOURCES: search_academic_sources,  # DDG dependent
+    # SearchType.OPEN_SCIENCE: search_open_science_sources,  # DDG dependent
+    # SearchType.REFERENCE: search_reference,           # DDG dependent
+    # SearchType.ACADEMIC_PROFILES: search_academic_profiles,  # DDG dependent
 }
 
 
 async def multi_search_interface(
-    search_queries: List[SearchQuery],
+    search_queries: List[Union[SearchQuery, SearchQueryAlpha]],
     max_results: int = 5,
     timeout: float = 15.0,
     rerank: bool = True,
@@ -630,27 +643,37 @@ async def multi_search_interface(
 ) -> List[SearchResult]:
     """Execute multiple search types in parallel with progress tracking"""
 
-    async def execute_search(search_query: SearchQuery) -> List[SearchResult]:
+    async def execute_search(search_query: Union[SearchQuery, SearchQueryAlpha]) -> List[SearchResult]:
         try:
-            if search_query.search_type not in search_map:
+            # Determine which search map to use
+            if isinstance(search_query, SearchQuery):
+                # Use stable search map for SearchQuery
+                search_map = stable_search_map
+                search_type = search_query.search_type
+            else:
+                # Use alpha search map for SearchQueryAlpha  
+                search_map = alpha_search_map
+                search_type = search_query.search_type
+            
+            if search_type not in search_map:
                 if logger_callback:
-                    logger_callback("invalid_search", f"❌ Invalid search type: {search_query.search_type.name}")
+                    logger_callback("invalid_search", f"❌ Invalid search type: {search_type.name}")
                 return []
 
-            results = await search_map[search_query.search_type](
+            results = await search_map[search_type](
                 search_query.query, max_results
             )
 
             if not results:
                 if logger_callback:
-                    logger_callback("no_results", f"❌ No results found for {search_query.search_type.name} with query: '{search_query.query}'")
+                    logger_callback("no_results", f"❌ No results found for {search_type.name} with query: '{search_query.query}'")
                 return []
             if logger_callback:
-                logger_callback("results_found", f"✅ Found {len(results)} results from {search_query.search_type.name} for: '{search_query.query}'")
+                logger_callback("results_found", f"✅ Found {len(results)} results from {search_type.name} for: '{search_query.query}'")
             return results
 
         except Exception as e:
-            error_msg = f"Error in {search_query.search_type.name} search for '{search_query.query}': {str(e)}"
+            error_msg = f"Error in {search_type.name} search for '{search_query.query}': {str(e)}"
             if logger_callback:
                 logger_callback("search_error", f"❌ {error_msg}")
             logger.error(error_msg, exc_info=True)
