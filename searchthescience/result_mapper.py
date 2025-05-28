@@ -136,33 +136,131 @@ class SearchResultMapper:
 
     @classmethod
     def map_openalex_item(cls, raw: dict) -> SearchResult:
-        # Convert abstract_inverted_index to readable text if it exists
-        abstract = ""
-        if raw.get("abstract_inverted_index"):
-            # Create a list of tuples (position, word)
-            words = [
-                (pos[0], word) for word, pos in raw["abstract_inverted_index"].items()
-            ]
-            # Sort by position and join words
-            abstract = " ".join(word for _, word in sorted(words))
+        try:
+            # Convert abstract_inverted_index to readable text if it exists
+            abstract = ""
+            if raw.get("abstract_inverted_index"):
+                try:
+                    # Reconstruct abstract from inverted index
+                    # Format: {"word": [position1, position2, ...], ...}
+                    inverted_index = raw["abstract_inverted_index"]
+                    
+                    # Find the maximum position to determine abstract length
+                    max_pos = 0
+                    for positions in inverted_index.values():
+                        if positions:
+                            max_pos = max(max_pos, max(positions))
+                    
+                    # Create array to hold words at correct positions
+                    words_array = [""] * (max_pos + 1)
+                    
+                    # Place each word at all its positions
+                    for word, positions in inverted_index.items():
+                        for pos in positions:
+                            if 0 <= pos <= max_pos:
+                                words_array[pos] = word
+                    
+                    # Join words to form abstract
+                    abstract = " ".join(words_array).strip()
+                    
+                except (TypeError, IndexError, AttributeError, ValueError):
+                    abstract = ""
 
-        return SearchResult(
-            result_type=SearchType.SCIENCE_GENERAL,
-            title=raw.get("title", "Untitled Paper"),
-            href=raw.get("primary_location", {}).get("pdf_url")
-            or f"https://doi.org/{raw.get('doi')}",
-            description=abstract,
-            published=raw.get("publication_date"),
-            authors=[a["author"]["display_name"] for a in raw.get("authorships", [])],
-            doi=raw.get("doi"),
-            source="OpenAlex",
-            additional_fields={
-            "related_works": raw.get("related_works", []),
-            "referenced_works": raw.get("referenced_works", []),
-            "concepts": raw.get("concepts", []),  # <-- Add this line!
-            "primary_topic": raw.get("primary_topic", None),  # If available
-        },
-        )
+            # Safely extract authors
+            authors = []
+            try:
+                authorships = raw.get("authorships", [])
+                if authorships:
+                    for a in authorships[:10]:  # Limit to first 10 authors
+                        if isinstance(a, dict) and "author" in a and isinstance(a["author"], dict):
+                            name = a["author"].get("display_name", "")
+                            if name:
+                                authors.append(name)
+            except (TypeError, AttributeError):
+                authors = []
+
+            # Safely extract primary location
+            primary_location = raw.get("primary_location") or {}
+            pdf_url = ""
+            venue = ""
+            if isinstance(primary_location, dict):
+                pdf_url = primary_location.get("pdf_url", "")
+                source_info = primary_location.get("source") or {}
+                if isinstance(source_info, dict):
+                    venue = source_info.get("display_name", "")
+
+            # Create href - prefer PDF, fallback to DOI
+            doi = raw.get("doi", "")
+            if pdf_url:
+                href = pdf_url
+            elif doi:
+                href = f"https://doi.org/{doi.replace('https://doi.org/', '')}"
+            else:
+                href = raw.get("id", "")
+
+            # Safely extract concepts
+            concepts = []
+            try:
+                concept_list = raw.get("concepts", [])
+                if concept_list:
+                    concepts = [
+                        c.get("display_name", "") for c in concept_list[:5] 
+                        if isinstance(c, dict) and c.get("display_name")
+                    ]
+            except (TypeError, AttributeError):
+                concepts = []
+
+            # Safely extract topic
+            primary_topic = ""
+            try:
+                topic_info = raw.get("primary_topic")
+                if isinstance(topic_info, dict):
+                    primary_topic = topic_info.get("display_name", "")
+            except (TypeError, AttributeError):
+                primary_topic = ""
+
+            # Safely extract open access info
+            open_access = False
+            try:
+                oa_info = raw.get("open_access")
+                if isinstance(oa_info, dict):
+                    open_access = oa_info.get("is_oa", False)
+            except (TypeError, AttributeError):
+                open_access = False
+
+            return SearchResult(
+                result_type=SearchType.SCIENCE_GENERAL,
+                title=raw.get("title", "Untitled Paper"),
+                href=href,
+                description=abstract,
+                published=raw.get("publication_date"),
+                authors=authors,
+                doi=doi,
+                source="OpenAlex",
+                additional_fields={
+                    # Essential metadata only - optimized for LLM token usage
+                    "citation_count": raw.get("cited_by_count", 0),
+                    "publication_year": raw.get("publication_year"),
+                    "open_access": open_access,
+                    "concepts": concepts,
+                    "primary_topic": primary_topic,
+                    "venue": venue,
+                    # No related_works to save tokens
+                },
+            )
+        except Exception as e:
+            # Fallback for any unexpected data structure
+            return SearchResult(
+                result_type=SearchType.SCIENCE_GENERAL,
+                title=raw.get("title", "Untitled Paper"),
+                href=raw.get("id", ""),
+                description="",
+                published=raw.get("publication_date"),
+                authors=[],
+                doi=raw.get("doi", ""),
+                source="OpenAlex",
+                additional_fields={"error": f"Mapping error: {str(e)}"},
+            )
 
     @classmethod
     def map_substack(cls, raw: dict) -> SearchResult:

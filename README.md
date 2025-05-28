@@ -137,28 +137,24 @@ if __name__ == "__main__":
 
 ```python
 import asyncio
-from searchthescience import multi_search_interface, SearchQuery, SearchType
+from searchthescience import multi_search_interface, SearchQuery, SearchTypeStable
 
 async def search_for_llm(user_query: str):
     """
     Search function designed for LLM integration.
     Returns formatted results ready for LLM consumption.
     """
-    # Determine appropriate search types based on query
+    # Use stable search types only for reliability
     search_queries = [
-        SearchQuery(search_type=SearchType.SCIENCE_PUBMED, query=user_query),
-        SearchQuery(search_type=SearchType.SCIENCE_GENERAL, query=user_query),
+        SearchQuery(search_type=SearchTypeStable.SCIENCE_GENERAL, query=user_query),
+        SearchQuery(search_type=SearchTypeStable.SCIENCE_ARXIV, query=user_query),
+        SearchQuery(search_type=SearchTypeStable.ZENODO, query=user_query),
     ]
-    
-    # Custom logger for LLM feedback
-    def log_callback(action_type: str, message: str):
-        print(f"[{action_type}] {message}")
     
     results = await multi_search_interface(
         search_queries=search_queries,
         max_results=3,
-        rerank=True,
-        logger_callback=log_callback
+        rerank=True
     )
     
     # Format results for LLM
@@ -173,6 +169,60 @@ async def main():
     user_question = "What are the latest treatments for Alzheimer's disease?"
     search_results = await search_for_llm(user_question)
     print(search_results)
+
+if __name__ == "__main__":
+    asyncio.run(main())
+```
+
+### Pydantic AI Agent Example
+
+```python
+from pydantic_ai import Agent, RunContext
+from pydantic import BaseModel
+from typing import List
+from searchthescience import multi_search_interface, SearchQuery, SearchTypeStable
+
+class SearchTaskAndResults(BaseModel):
+    results: List = []
+    iterations: int = 0
+
+# Create agent with search capabilities
+search_agent = Agent(
+    model='openai:gpt-4',
+    deps_type=SearchTaskAndResults,
+    system_prompt="""You are a research assistant that can search scientific literature.
+    Use the execute_searches tool to find relevant papers for user questions."""
+)
+
+@search_agent.tool
+async def execute_searches(
+    ctx: RunContext[SearchTaskAndResults], queries: List[SearchQuery]
+) -> str:
+    """Execute scientific literature searches."""
+    try:
+        results = await multi_search_interface(
+            search_queries=queries, max_results=5, rerank=True
+        )
+        valid_results = [r for r in results if not isinstance(r, Exception)]
+        ctx.deps.results.extend(valid_results)
+        ctx.deps.iterations += 1
+        return f"✅ Found {len(valid_results)} results from {len(queries)} searches"
+    except Exception as e:
+        return f"❌ Search failed: {str(e)}"
+
+# Usage
+async def main():
+    # Create search context
+    search_context = SearchTaskAndResults()
+    
+    # Ask the agent to research
+    response = await search_agent.run(
+        "Find recent papers about CRISPR gene editing applications",
+        deps=search_context
+    )
+    
+    print(f"Agent response: {response.data}")
+    print(f"Found {len(search_context.results)} papers")
 
 if __name__ == "__main__":
     asyncio.run(main())
